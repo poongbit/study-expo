@@ -1,14 +1,16 @@
 {
   "expo": {
-    "name": "privacy-lens",
-    "slug": "privacy-lens",
+    "name": "SD Sketch Coach",
+    "slug": "sd-sketch-coach",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "landscape",
     "icon": "./assets/images/icon.png",
-    "scheme": "privacylens",
+    "scheme": "sdsketchcoach",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.poongbit.sdsketchcoach",
+      "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
