@@ -1,0 +1,74 @@
+{
+  "schema_version": "0.1",
+  "classes": [
+    {
+      "id": 0,
+      "name": "GOOD",
+      "part": "GLOBAL",
+      "definition": "목표 구조 범위 안에 있고 주요 구조 오류가 없음",
+      "feedback": "기본 비율과 배치가 안정적입니다. 같은 구조를 한 번 더 반복해보세요."
+    },
+    {
+      "id": 1,
+      "name": "HEAD_TOO_WIDE",
+      "part": "HEAD",
+      "definition": "머리 가로폭이 목표보다 큼",
+      "severity_metric": "student_head_w/expert_head_w-1",
+      "feedback": "머리의 가로 폭을 조금 줄여보세요."
+    },
+    {
+      "id": 2,
+      "name": "HEAD_TOO_TALL",
+      "part": "HEAD",
+      "definition": "머리 세로높이가 목표보다 큼",
+      "severity_metric": "student_head_h/expert_head_h-1",
+      "feedback": "머리가 세로로 길어졌습니다. 위아래 높이를 조금 줄여보세요."
+    },
+    {
+      "id": 3,
+      "name": "EYES_TOO_WIDE",
+      "part": "FACE",
+      "definition": "두 눈 중심 간 거리가 목표보다 큼",
+      "severity_metric": "student_eye_distance/expert_eye_distance-1",
+      "feedback": "두 눈 사이 간격을 조금 줄여보세요."
+    },
+    {
+      "id": 4,
+      "name": "EYES_UNBALANCED",
+      "part": "FACE",
+      "definition": "좌우 눈의 수직 높이 차이가 큼",
+      "severity_metric": "abs(left_eye_y-right_eye_y)/expert_head_h",
+      "feedback": "두 눈의 높이를 맞춰보세요. 얼굴 중심 가이드를 확인하세요."
+    },
+    {
+      "id": 5,
+      "name": "TORSO_TOO_LONG",
+      "part": "TORSO",
+      "definition": "몸통 세로길이가 선택한 2등신 템플릿보다 김",
+      "severity_metric": "student_torso_h/expert_torso_h-1",
+      "feedback": "몸통이 길어졌습니다. 몸통 높이를 조금 줄여보세요."
+    },
+    {
+      "id": 6,
+      "name": "BODY_OFF_CENTER",
+      "part": "BODY",
+      "definition": "몸통·팔다리 중심이 머리 중심에서 좌우로 벗어남",
+      "severity_metric": "abs(student_body_center_x-student_head_center_x)",
+      "feedback": "몸 중심이 머리 중심에서 벗어났습니다. 세로 중심선을 기준으로 맞춰보세요."
+    },
+    {
+      "id": 7,
+      "name": "STROKE_TOO_FRAGMENTED",
+      "part": "PROCESS",
+      "definition": "기본 형태를 지나치게 많은 짧은 획으로 끊어 그림",
+      "severity_metric": "student_stroke_count/expert_stroke_count-1",
+      "feedback": "선을 너무 잘게 끊고 있습니다. 형태 하나를 더 긴 획으로 이어 그려보세요."
+    }
+  ],
+  "v0_policy": {
+    "single_primary_error_per_sample": true,
+    "multi_label_real_user_data": "V1 이후",
+    "aesthetic_judgment": false,
+    "style_target": "사용자가 선택한 템플릿 기준"
+  }
+}
