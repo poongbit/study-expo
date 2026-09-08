@@ -1,16 +1,14 @@
-#import <React/RCTViewManager.h>
 #import <React/RCTBridgeModule.h>
+#import <React/RCTViewManager.h>
 
 // ── View Manager ──────────────────────────────────────────────────────────
-RCT_EXTERN_MODULE(PencilCanvasViewManager, RCTViewManager)
-
-RCT_EXTERN__BLOCK_PROP_GROUP(PencilCanvasViewManager,
-  onStrokesExported,
-  onDrawingChanged
-)
+@interface RCT_EXTERN_MODULE(PencilCanvasViewManager, RCTViewManager)
+@end
 
 // ── Native Module ─────────────────────────────────────────────────────────
-RCT_EXTERN_MODULE(PencilCanvasModule, NSObject)
+@interface RCT_EXTERN_MODULE(PencilCanvasModule, NSObject)
 
 RCT_EXTERN_METHOD(exportStrokes)
 RCT_EXTERN_METHOD(clearCanvas)
+
+@end

@@ -1,9 +1,17 @@
+/**
+ * PencilCanvas — PencilKit(PKCanvasView) 기반 Native Module 래퍼.
+ *
+ * ⚠️  커스텀 Native Module이므로 Development Build 전용입니다.
+ *      Expo Go에서는 이 컴포넌트를 렌더링하지 마세요.
+ *      드로잉 기능은 drawing.tsx의 Skia 기반 구현을 사용합니다.
+ */
 import {
   NativeModules,
+  Platform,
   requireNativeComponent,
   StyleSheet,
   View,
-  ViewStyle,
+  type ViewStyle,
 } from 'react-native';
 
 // ── 타입 정의 ─────────────────────────────────────────────────────────────
@@ -36,10 +44,18 @@ interface PencilCanvasNativeProps {
   onDrawingChanged?: (event: { nativeEvent: Record<string, never> }) => void;
 }
 
-// ── Native View ───────────────────────────────────────────────────────────
+// ── Native View (Development Build 전용) ─────────────────────────────────
 
-const PencilCanvasViewNative =
-  requireNativeComponent<PencilCanvasNativeProps>('PencilCanvasView');
+// Expo Go에서는 requireNativeComponent 자체가 에러를 던지므로 조건부 로드
+const PencilCanvasViewNative = Platform.OS === 'ios'
+  ? (() => {
+      try {
+        return requireNativeComponent<PencilCanvasNativeProps>('PencilCanvasView');
+      } catch {
+        return null;
+      }
+    })()
+  : null;
 
 // ── Native Module ─────────────────────────────────────────────────────────
 
@@ -48,17 +64,11 @@ const PencilCanvasNativeModule = NativeModules.PencilCanvas as {
   clearCanvas: () => void;
 } | null;
 
-// ── Public API ────────────────────────────────────────────────────────────
+// ── Public Commands ───────────────────────────────────────────────────────
 
 export const PencilCanvasCommands = {
-  /** 현재 그림의 stroke JSON을 onStrokesExported 콜백으로 전달 */
-  exportStrokes: () => {
-    PencilCanvasNativeModule?.exportStrokes();
-  },
-  /** 캔버스 전체 초기화 */
-  clearCanvas: () => {
-    PencilCanvasNativeModule?.clearCanvas();
-  },
+  exportStrokes: () => PencilCanvasNativeModule?.exportStrokes(),
+  clearCanvas: () => PencilCanvasNativeModule?.clearCanvas(),
 };
 
 // ── Component ─────────────────────────────────────────────────────────────
@@ -74,6 +84,13 @@ export function PencilCanvas({
   onStrokesExported,
   onDrawingChanged,
 }: PencilCanvasProps) {
+  if (!PencilCanvasViewNative) {
+    return (
+      <View style={[styles.container, style, styles.fallback]}>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, style]}>
       <PencilCanvasViewNative
@@ -83,7 +100,9 @@ export function PencilCanvas({
             ? (e) => onStrokesExported(e.nativeEvent)
             : undefined
         }
-        onDrawingChanged={onDrawingChanged ? () => onDrawingChanged() : undefined}
+        onDrawingChanged={
+          onDrawingChanged ? () => onDrawingChanged() : undefined
+        }
       />
     </View>
   );
@@ -93,5 +112,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     overflow: 'hidden',
+  },
+  fallback: {
+    backgroundColor: '#f8f8fb',
   },
 });
