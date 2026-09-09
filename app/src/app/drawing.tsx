@@ -20,6 +20,7 @@ import { extractFeaturesV1 } from '../ml/featureExtractorV1';
 import { applyScaler } from '../ml/scaler';
 import { runMockInference, type InferenceResult } from '../ml/mockInference';
 import { getFeedbackText } from '../ml/feedback';
+import { detectErrorsV1, type MultiErrorAnalysis } from '../ml/multiErrorDetector';
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -56,6 +57,7 @@ export default function DrawingScreen() {
   const [features, setFeatures] = useState<SketchFeatures | null>(null);
   const [featuresV1, setFeaturesV1] = useState<SketchFeaturesV1 | null>(null);
   const [inferenceResult, setInferenceResult] = useState<InferenceResult | null>(null);
+  const [multiErrorResult, setMultiErrorResult] = useState<MultiErrorAnalysis | null>(null);
 
   // Validation Ground Truth Label
   const EXPECTED_LABELS = [
@@ -240,6 +242,16 @@ export default function DrawingScreen() {
     const result = await runMockInference(scaledFeatures);
     setInferenceResult(result);
     
+    // 4. Multi-error analysis V1
+    const multiError = detectErrorsV1(extractedV1);
+    setMultiErrorResult(multiError);
+
+    console.log('\n[MULTI ERROR RESULT]');
+    console.log(JSON.stringify(multiError.results.filter(r => r.detected), null, 2));
+    
+    console.log('\n[PRIMARY ERROR]');
+    console.log(multiError.primaryError ? multiError.primaryError.label : 'GOOD');
+    
     // Save to test samples
     const sample: TestSample = {
       drawingId: drawingData.drawingId,
@@ -258,7 +270,7 @@ export default function DrawingScreen() {
     
     console.log(`\n[EXPECTED LABEL]\n${expectedLabel}`);
     
-    console.log('\n[MODEL RESULT]');
+    console.log('\n[V0 ONNX RESULT]');
     console.log(`predictionIndex: ${result.index}`);
     console.log(`predictionLabel: ${result.label}`);
     console.log(`confidence: ${result.confidence.toFixed(2)}\n`);
@@ -314,6 +326,7 @@ export default function DrawingScreen() {
     setFeatures(null);
     setFeaturesV1(null);
     setInferenceResult(null);
+    setMultiErrorResult(null);
     firstStrokeRecorded.current = false;
   };
 
@@ -419,36 +432,55 @@ export default function DrawingScreen() {
                     <Text style={styles.resultTitle}>AI 분석 결과</Text>
                     
                     <View style={styles.predictionCard}>
-                      <Text style={styles.predictionLabel}>{inferenceResult.label}</Text>
-                      <Text style={styles.confidence}>신뢰도 {(inferenceResult.confidence * 100).toFixed(0)}%</Text>
+                      <Text style={styles.predictionLabel}>
+                        {multiErrorResult?.primaryError ? multiErrorResult.primaryError.label : 'GOOD'}
+                      </Text>
+                      {multiErrorResult?.primaryError && (
+                        <Text style={styles.confidence}>Severity: {(multiErrorResult.primaryError.severity * 100).toFixed(0)}%</Text>
+                      )}
                     </View>
 
                     <Text style={styles.feedbackText}>
-                      "{getFeedbackText(inferenceResult.label)}"
+                      "{getFeedbackText(multiErrorResult?.primaryError ? multiErrorResult.primaryError.label : 'GOOD')}"
                     </Text>
 
                     <View style={styles.debugSection}>
                       <Text style={styles.debugTitle}>DEVELOPMENT MODE LOGS</Text>
-                      <Text style={styles.featureItem}>
-                        prediction index: {inferenceResult.index}
-                      </Text>
-                      <Text style={styles.featureItem}>
-                        RAW V0 FEATURES:
-                      </Text>
-                      {Object.entries(features).map(([key, val]) => (
-                        <Text style={styles.featureItem} key={`v0_${key}`}>
-                          - {key}: {typeof val === 'number' && !Number.isInteger(val) ? val.toFixed(4) : val}
-                        </Text>
-                      ))}
-
+                      
                       <Text style={[styles.featureItem, { marginTop: 12, color: '#fcd34d', fontWeight: 'bold' }]}>
-                        V1 RELATIVE FEATURES:
+                        [V1 FEATURES]
                       </Text>
                       {featuresV1 && Object.entries(featuresV1).map(([key, val]) => (
                         <Text style={styles.featureItem} key={`v1_${key}`}>
                           - {key}: {typeof val === 'number' && !Number.isInteger(val) ? val.toFixed(4) : val}
                         </Text>
                       ))}
+
+                      <Text style={[styles.featureItem, { marginTop: 12, color: '#38bdf8', fontWeight: 'bold' }]}>
+                        [MULTI ERROR RESULT]
+                      </Text>
+                      {multiErrorResult?.detectedErrors.map((err) => (
+                        <Text style={styles.featureItem} key={`multi_${err.label}`}>
+                          - {err.label} (sev: {err.severity.toFixed(2)})
+                        </Text>
+                      ))}
+                      {multiErrorResult?.detectedErrors.length === 0 && (
+                        <Text style={styles.featureItem}>- None (GOOD)</Text>
+                      )}
+
+                      <Text style={[styles.featureItem, { marginTop: 12, color: '#f87171', fontWeight: 'bold' }]}>
+                        [PRIMARY ERROR]
+                      </Text>
+                      <Text style={styles.featureItem}>
+                        {multiErrorResult?.primaryError ? multiErrorResult.primaryError.label : 'GOOD'}
+                      </Text>
+
+                      <Text style={[styles.featureItem, { marginTop: 12, color: '#a78bfa', fontWeight: 'bold' }]}>
+                        [V0 ONNX RESULT]
+                      </Text>
+                      <Text style={styles.featureItem}>
+                        {inferenceResult.label} (idx: {inferenceResult.index}, conf: {(inferenceResult.confidence * 100).toFixed(0)}%)
+                      </Text>
                     </View>
                   </ScrollView>
                 </View>
