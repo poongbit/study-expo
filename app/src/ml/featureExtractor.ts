@@ -1,9 +1,13 @@
-import type { DrawingData, SketchFeatures, StrokePoint } from '../types/drawing';
+import type {
+  DrawingData,
+  SketchFeatures,
+  StrokePoint,
+} from "../types/drawing";
 
 /**
  * Calculates the bounding box of a given set of strokes.
  */
-function getBoundingBox(strokes: { points: StrokePoint[] }[]) {
+export function getBoundingBox(strokes: { points: StrokePoint[] }[]) {
   let minX = Infinity;
   let maxX = -Infinity;
   let minY = Infinity;
@@ -69,17 +73,19 @@ export function extractFeatures(data: DrawingData): SketchFeatures {
   // 3 & 4: eye_distance, eye_y_diff
   const leftEyeCenter = getCenter(eyeLeftStrokes);
   const rightEyeCenter = getCenter(eyeRightStrokes);
-  
+
   // If either eye is missing points, fallback to 0 to prevent NaN
   const hasLeftEye = leftEyeCenter.x !== 0 || leftEyeCenter.y !== 0;
   const hasRightEye = rightEyeCenter.x !== 0 || rightEyeCenter.y !== 0;
-  
-  const eye_distance = hasLeftEye && hasRightEye
-    ? Math.abs(rightEyeCenter.x - leftEyeCenter.x)
-    : 0;
-  const eye_y_diff = hasLeftEye && hasRightEye
-    ? Math.abs(rightEyeCenter.y - leftEyeCenter.y)
-    : 0;
+
+  const eye_distance =
+    hasLeftEye && hasRightEye
+      ? Math.abs(rightEyeCenter.x - leftEyeCenter.x)
+      : 0;
+  const eye_y_diff =
+    hasLeftEye && hasRightEye
+      ? Math.abs(rightEyeCenter.y - leftEyeCenter.y)
+      : 0;
 
   // 5: torso_height
   const torsoBox = getBoundingBox(torsoStrokes);
@@ -88,13 +94,12 @@ export function extractFeatures(data: DrawingData): SketchFeatures {
   // 6: body_head_offset_x
   const headCenter = getCenter(headStrokes);
   const torsoCenter = getCenter(torsoStrokes);
-  
+
   const hasHead = headCenter.x !== 0 || headCenter.y !== 0;
   const hasTorso = torsoCenter.x !== 0 || torsoCenter.y !== 0;
-  
-  const body_head_offset_x = hasHead && hasTorso
-    ? Math.abs(torsoCenter.x - headCenter.x)
-    : 0;
+
+  const body_head_offset_x =
+    hasHead && hasTorso ? Math.abs(torsoCenter.x - headCenter.x) : 0;
 
   // 7: fragmentation_ratio (V0: head stroke count)
   const fragmentation_ratio = headStrokes.length;

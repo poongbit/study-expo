@@ -1,0 +1,9 @@
+[
+  {
+    "image": "input.jpg",
+    "head_aspect_ratio": 1.0974719602642402,
+    "eye_center_distance_ratio": 0.4835760396850271,
+    "inter_eye_gap_ratio": 0.2745864758627361,
+    "eye_y_diff_ratio": 0.0480821351536978
+  }
+]

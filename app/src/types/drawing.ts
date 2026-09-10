@@ -40,6 +40,8 @@ export interface SketchFeaturesV1 {
   head_aspect_ratio: number;
   eye_distance_ratio: number;
   eye_distance_ratio_height: number;
+  eye_bbox_center_distance_ratio: number;
+  inter_eye_gap_ratio: number;
   eye_y_diff_ratio: number;
   torso_head_ratio: number;
   body_offset_ratio: number;
