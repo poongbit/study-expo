@@ -9,19 +9,48 @@ import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    // Genspark Palette
+    background: '#F5F3FA',
+    backgroundSecondary: '#EDEAF6',
+    card: '#FFFFFF',
+    cardSecondary: '#FAF8FE',
+    text: '#1F1B2E',
+    textSecondary: '#5B5673',
+    textMuted: '#8E89A6',
+    primary: '#7C6BE0',
+    primaryDeep: '#5F4FC7',
+    primarySoft: '#EAE5FA',
+    primaryTint: '#F3F0FB',
+    success: '#5FA971',
+    warning: '#D89652',
+    // Fallbacks for older components
+    backgroundElement: '#EDEAF6',
+    backgroundSelected: '#EAE5FA',
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    background: '#1F1B2E',
+    backgroundSecondary: '#29253B',
+    card: '#29253B',
+    cardSecondary: '#312C45',
+    text: '#FFFFFF',
+    textSecondary: '#A09CB3',
+    textMuted: '#6C6785',
+    primary: '#8F81E6',
+    primaryDeep: '#A59AEC',
+    primarySoft: '#3A3266',
+    primaryTint: '#2C264D',
+    success: '#75C088',
+    warning: '#E2AB70',
+    // Fallbacks
+    backgroundElement: '#29253B',
+    backgroundSelected: '#3A3266',
   },
+} as const;
+
+export const Radius = {
+  card: 24,
+  button: 16,
+  chip: 999,
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;

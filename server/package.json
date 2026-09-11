@@ -1,0 +1,18 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "Gemini feedback proxy for ChibiCoach",
+  "main": "src/index.mjs",
+  "scripts": {
+    "dev": "node --env-file=.env --watch src/index.mjs",
+    "start": "node --env-file=.env src/index.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@google/genai": "^2.21.0"
+  }
+}

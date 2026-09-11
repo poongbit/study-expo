@@ -3,7 +3,7 @@
  */
 
 export const FEEDBACK_MAPPING: Record<string, string> = {
-  'GOOD': '전체적인 비율이 안정적입니다.',
+  'GOOD': '현재 임시 규칙에서 교정할 항목이 탐지되지 않았어요.',
   'HEAD_TOO_WIDE': '머리의 가로 폭을 조금 줄여보세요.',
   'HEAD_TOO_TALL': '머리가 세로로 조금 길어요. 높이를 조금 줄여보세요.',
   'EYES_TOO_WIDE': '두 눈 사이의 간격을 조금 좁혀보세요.',

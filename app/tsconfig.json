@@ -8,6 +8,9 @@
       ],
       "@/assets/*": [
         "./assets/*"
+      ],
+      "react-native/types/*": [
+        "./node_modules/react-native/types/*.d.ts"
       ]
     }
   },

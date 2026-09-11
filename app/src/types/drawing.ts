@@ -9,6 +9,7 @@ export interface StrokePoint {
   x: number; // 0–1 normalized (canvas 기준)
   y: number; // 0–1 normalized
   t: number; // stroke 시작 기준 경과 ms
+  pressure?: number; // stylus pressure, normalized 0–1 when the device reports it
 }
 
 export interface Stroke {
@@ -46,4 +47,15 @@ export interface SketchFeaturesV1 {
   torso_head_ratio: number;
   body_offset_ratio: number;
   fragmentation_ratio: number;
+}
+
+// Developer baseline samples; prediction is simulated, not ONNX output.
+export interface TestSample {
+  drawingId: string;
+  createdAt: number;
+  inputType: InputType;
+  expectedLabel: string;
+  rawFeatures: SketchFeatures;
+  v1Features: SketchFeaturesV1;
+  prediction: { index: number; label: string; confidence: number };
 }

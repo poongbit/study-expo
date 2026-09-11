@@ -1,56 +1,67 @@
-# Welcome to your Expo app 👋
+# ChibiCoach — Stroke Basics v0
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Expo 57 / React Native / TypeScript 앱입니다. 첫 화면의 **기초 연습**에서 20획을 모아 강점, 반복 패턴, 방향별 차이와 다음 행동을 안내합니다. 기존 부위별 SD 드로잉은 별도 탭에 유지합니다.
 
-## Get started
+## 실행 및 검증
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```sh
+npm ci
+npm start
+npm run typecheck
+npm test
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+브라우저 개발 확인은 `npm run web`으로 실행합니다. iPad에서는 기존 Expo 개발 서버에 연결합니다. 새 네이티브 빌드를 사용하는 경우 의존성 변경 후 빌드를 갱신해야 합니다.
 
-### Other setup steps
+## Gemini 피드백 서버
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+API 키는 앱 번들에 넣지 않고 저장소의 `server` 프록시에서만 읽습니다. `server/.env.example`을 `server/.env`로 복사한 뒤 발급받은 키를 `GEMINI_API_KEY`에 넣습니다. 앱은 `app/.env.local`의 `EXPO_PUBLIC_FEEDBACK_API_URL`로 서버를 찾습니다. iPad에서는 `localhost` 대신 Mac과 iPad가 함께 접속한 네트워크의 Mac IP를 사용하세요.
 
-## Learn more
+```sh
+cd server
+npm install
+npm start
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+Expo 개발 서버는 환경 파일을 추가하거나 주소를 바꾼 뒤 다시 시작해야 합니다. 20획이 완료되면 앱은 획별 요약(방향, 속도, 중간 정지, 구간별 흔들림, 오차·되돌아감·끝점, 필압 판정)을 서버에 보냅니다. 서버는 최선·최악 방향, 가장 큰 상대 오차, 전후반 및 이전 세트 차이를 먼저 확정합니다. 원본 좌표는 Gemini에 텍스트로 넘기지 않고 최대 48점으로 축소한 뒤 서버에서 20획 오버레이 PNG 한 장으로 렌더링해 시각 근거로 제공합니다. Gemini는 고정 처방표에서 맞는 행동을 골라 핵심 문제·숫자 근거·다음 행동 세 문장만 반환합니다. 호출이 실패하거나 15초를 넘으면 앱에서 계산한 기존 피드백을 보여주며 다시 받기 버튼을 제공합니다.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+`postinstall`은 Expo 57에 포함된 잘못된 `.d.ts` 경로(`src` 참조)를 실제 배포된 `build` 선언으로 교정합니다. 런타임 JavaScript는 변경하지 않습니다. `scripts/repair-sdk-types.cjs`는 재실행 가능하며, 다른 SDK에서는 자동으로 건너뜁니다. `tsconfig.json`의 React Native 내부 타입 경로도 배포된 선언을 가리킵니다. SDK 갱신 시 두 호환성 처리가 여전히 필요한지 재검토하세요.
 
-## Join the community
+## 사용 흐름
 
-Join our community of developers creating universal apps.
+1. 왼쪽 점에서 오른쪽 점까지 선을 그립니다.
+2. **교정 확인하기**를 누르면 우선 교정 하나와 측정값이 표시되고 원본 stroke가 저장됩니다.
+3. **다시 그려보기**로 새 선을 그립니다. 직전 교정 항목의 값을 비교합니다.
+4. 앱을 다시 열면 저장된 연습 횟수와 최근 세 기록, 마지막 교정을 불러옵니다.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+빈 입력·점·매우 짧은 선은 분석하지 않습니다. 저장 실패 시 현재 선과 결과를 유지하며 **저장 다시 시도**를 제공합니다. 저장이 완료되기 전에는 다음 시도로 넘어가지 않습니다. 분석하지 않은 진행 중 선은 재시작 후 복원하지 않습니다.
+
+## 측정과 비교
+
+직선 코칭 v2는 **반복 흔들림·되돌아감·추가 획**을 위치 정확도와 따로 측정합니다. 작은 흔들림이 가이드 근처에 있어도 별도 교정을 제공합니다. 사전 동작 연습(ghosting)과 편한 리듬으로 한 번 긋기를 안내하며, 수치 상세는 접어서 표시합니다.
+
+교육 근거, 계산식, 임시 임계값, 실기기 검증 방법은 [직선 코칭 설계](docs/line-coaching.md)를 참고하세요. 교육 원칙과 앱의 실험적 숫자 기준을 구분합니다.
+
+기존 v1 기록은 보존하며, 새 v2 기록과 직접 비교하지 않습니다. 같은 버전·입력 도구·가이드의 재시도에서 **직전에 교정받은 항목**을 비교합니다. 기록된 점이 부족하면 잔흔들림의 성공 판정/비교를 보류합니다.
+
+## 저장
+
+- iOS/Android: 앱 document 폴더 아래 `chibicoach/straight-line-v1/<attemptId>.json`. 임시 파일을 쓴 뒤 이동합니다.
+- Web: 해당 origin의 localStorage에 시도별 저장. 기기/브라우저 간 동기화하지 않습니다.
+- 기록에는 스키마·exercise·metric 버전, guide 좌표, attempt/previousAttempt ID, 생성 시간, stroke ID, 획별 입력 도구·시작 시각·정규화 좌표·상대시간(ms), 측정값과 correction이 포함됩니다.
+- 로드 시 raw stroke를 검증하고 분석값을 다시 계산합니다. 손상된 기록은 보존하고 제외 개수를 표시합니다.
+- 최근 세 개만 화면에 표시하지만 저장된 이전 기록은 삭제하지 않습니다.
+
+## 검증 범위
+
+자동 테스트: 이상적 선, 빈/짧은/비정상 입력, 시작·끝점, 곡선, 끊긴 선, 샘플 밀도 독립성, 이전 교정 기준의 개선·악화·유지 비교, 입력 도구/버전 분리, JSON 복원, 저장 실패와 재시도, 기존 드로잉 입력 검증.
+
+브라우저 수동 확인: 빈 입력 안내, 첫 시도 저장, 재시도 개선 표시, 페이지 재시작 후 두 기록 유지. iOS JS 번들 export 성공. 사용자에게서 iPad 선 입력이 잘 된다는 피드백을 받았습니다. 사용자는 iPad 재시작 후 저장 기록도 남는다고 확인했습니다. v2의 실제 잔흔들림 감도와 Pencil/터치 전환은 실기기 추가 확인이 필요합니다.
+
+## 남은 범위
+
+C Curve / S Curve / Circle, 학습 완료 조건, 장기 진척 시각화, 스타일 프로필 적용은 아직 없습니다. 기존 SD 드로잉 탭의 V0 결과는 **MOCK**이며 실제 ONNX 실행이나 신뢰도가 아닙니다. 그 탭의 테스트 표본은 기존처럼 메모리/콘솔 기반이며, 위 영구 저장은 직선 연습에 적용됩니다.
+
+직선 연습은 저장된 20획을 한 배치로 묶습니다. 개별 획에서는 평가를 노출하지 않고 저장 직후 캔버스를 비웁니다. 20획이 모이면 평균·편차·반복 빈도를 집계하고, 35% 이상 반복된 문제 중 가장 심각한 교정 한 가지만 표시합니다. 최신 배치의 진행과 완료 상태는 저장 기록에서 복원됩니다.
+
+새 직선 배치는 좌→우·우→좌 가로, 위→아래·아래→위 세로, 양 대각선의 정·역방향까지 총 8개 방향을 순환합니다. `Apple Pencil 필압 함께`를 선택하면 편한 필압을 기준으로 일정하게·가볍게·점점 강하게·점점 약하게 그리는 과제가 추가되고, 필압이 화면의 선 굵기에 반영됩니다. 필압을 받을 수 없는 입력은 방향만 분석하고 필압 판정은 보류합니다.

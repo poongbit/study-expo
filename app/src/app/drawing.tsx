@@ -15,6 +15,7 @@ import {
 } from 'react-native-gesture-handler';
 
 import type { DrawingData, PartKey, StrokePoint, InputType, SketchFeatures, SketchFeaturesV1, TestSample } from '../types/drawing';
+import { validateDrawing } from '../ml/validateDrawing';
 import { extractFeatures } from '../ml/featureExtractor';
 import { extractFeaturesV1 } from '../ml/featureExtractorV1';
 import { applyScaler } from '../ml/scaler';
@@ -40,6 +41,9 @@ interface DrawnPath {
 
 export default function DrawingScreen() {
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
+  const [validationError, setValidationError] = useState('');
+  const [analyzing, setAnalyzing] = useState(false);
+  const analysisLock = useRef(false);
   const [drawingData, setDrawingData] = useState<DrawingData>({
     drawingId: `draw_${Date.now()}`,
     inputType: 'TOUCH', // Default, updated on first stroke
@@ -200,80 +204,94 @@ export default function DrawingScreen() {
   };
 
   const handleAnalyze = async () => {
-    const extracted = extractFeatures(drawingData);
-    const extractedV1 = extractFeaturesV1(drawingData);
-    setFeatures(extracted);
-    setFeaturesV1(extractedV1);
-    
-    // Logging V0 and V1 as requested
-    console.log('\n[V0 FEATURES]');
-    Object.entries(extracted).forEach(([key, val]) => {
-      console.log(`${key}: ${typeof val === 'number' && !Number.isInteger(val) ? val.toFixed(4) : val}`);
-    });
+    if (analysisLock.current) return;
+    const invalid = validateDrawing(drawingData);
+    if (invalid) { setValidationError(invalid); return; }
+    setValidationError('');
+    analysisLock.current = true;
+    setAnalyzing(true);
+    try {
+      const extracted = extractFeatures(drawingData);
+      const extractedV1 = extractFeaturesV1(drawingData);
+      setFeatures(extracted);
+      setFeaturesV1(extractedV1);
 
-    console.log('\n[V1 RELATIVE FEATURES]');
-    Object.entries(extractedV1).forEach(([key, val]) => {
-      console.log(`${key}: ${typeof val === 'number' && !Number.isInteger(val) ? val.toFixed(4) : val}`);
-    });
+      // Logging V0 and V1 as requested
+      console.log('\n[V0 FEATURES]');
+      Object.entries(extracted).forEach(([key, val]) => {
+        console.log(`${key}: ${typeof val === 'number' && !Number.isInteger(val) ? val.toFixed(4) : val}`);
+      });
 
-    console.log('\n[V1 COMPACT JSON]');
-    console.log(JSON.stringify({ expectedLabel, ...extractedV1 }));
+      console.log('\n[V1 RELATIVE FEATURES]');
+      Object.entries(extractedV1).forEach(([key, val]) => {
+        console.log(`${key}: ${typeof val === 'number' && !Number.isInteger(val) ? val.toFixed(4) : val}`);
+      });
 
-    // 1. Feature array (Strict Order exactly matching python training for V0)
-    const rawFeaturesArray = new Float32Array([
-      extracted.head_width,
-      extracted.head_height,
-      extracted.eye_distance,
-      extracted.eye_y_diff,
-      extracted.torso_height,
-      extracted.body_head_offset_x,
-      extracted.fragmentation_ratio
-    ]);
+      console.log('\n[V1 COMPACT JSON]');
+      console.log(JSON.stringify({ expectedLabel, ...extractedV1 }));
 
-    // 2. Scaler (StandardScaler from scaler.json)
-    const scaledFeatures = applyScaler(rawFeaturesArray);
+      // 1. Feature array (Strict Order exactly matching python training for V0)
+      const rawFeaturesArray = new Float32Array([
+        extracted.head_width,
+        extracted.head_height,
+        extracted.eye_distance,
+        extracted.eye_y_diff,
+        extracted.torso_height,
+        extracted.body_head_offset_x,
+        extracted.fragmentation_ratio
+      ]);
 
-    console.log('\n[RAW FEATURES]');
-    console.log(rawFeaturesArray);
-    console.log('\n[SCALED FEATURES]');
-    console.log(scaledFeatures);
+      // 2. Scaler (StandardScaler from scaler.json)
+      const scaledFeatures = applyScaler(rawFeaturesArray);
 
-    // 3. Mock ONNX Inference (Replace with onnxruntime when ejected)
-    const result = await runMockInference(scaledFeatures);
-    setInferenceResult(result);
-    
-    // 4. Multi-error analysis V1
-    const multiError = detectErrorsV1(extractedV1);
-    setMultiErrorResult(multiError);
+      console.log('\n[RAW FEATURES]');
+      console.log(rawFeaturesArray);
+      console.log('\n[SCALED FEATURES]');
+      console.log(scaledFeatures);
 
-    console.log('\n[MULTI ERROR RESULT]');
-    console.log(JSON.stringify(multiError.results.filter(r => r.detected), null, 2));
-    
-    console.log('\n[PRIMARY ERROR]');
-    console.log(multiError.primaryError ? multiError.primaryError.label : 'GOOD');
-    
-    // Save to test samples
-    const sample: TestSample = {
-      drawingId: drawingData.drawingId,
-      createdAt: Date.now(),
-      inputType: drawingData.inputType,
-      expectedLabel,
-      rawFeatures: extracted,
-      v1Features: extractedV1,
-      prediction: {
-        index: result.index,
-        label: result.label,
-        confidence: result.confidence
-      }
-    };
-    setTestSamples(prev => [...prev, sample]);
-    
-    console.log(`\n[EXPECTED LABEL]\n${expectedLabel}`);
-    
-    console.log('\n[V0 ONNX RESULT]');
-    console.log(`predictionIndex: ${result.index}`);
-    console.log(`predictionLabel: ${result.label}`);
-    console.log(`confidence: ${result.confidence.toFixed(2)}\n`);
+      // 3. Mock ONNX Inference (Replace with onnxruntime when ejected)
+      const result = await runMockInference(scaledFeatures);
+      setInferenceResult(result);
+
+      // 4. Multi-error analysis V1
+      const multiError = detectErrorsV1(extractedV1);
+      setMultiErrorResult(multiError);
+
+      console.log('\n[MULTI ERROR RESULT]');
+      console.log(JSON.stringify(multiError.results.filter(r => r.detected), null, 2));
+
+      console.log('\n[PRIMARY ERROR]');
+      console.log(multiError.primaryError ? multiError.primaryError.label : 'GOOD');
+
+      // Save to test samples
+      const sample: TestSample = {
+        drawingId: drawingData.drawingId,
+        createdAt: Date.now(),
+        inputType: drawingData.inputType,
+        expectedLabel,
+        rawFeatures: extracted,
+        v1Features: extractedV1,
+        prediction: {
+          index: result.index,
+          label: result.label,
+          confidence: result.confidence
+        }
+      };
+      setTestSamples(prev => [...prev, sample]);
+
+      console.log(`\n[EXPECTED LABEL]\n${expectedLabel}`);
+
+      console.log('\n[V0 MOCK RESULT — 실제 모델 미사용]');
+      console.log(`predictionIndex: ${result.index}`);
+      console.log(`predictionLabel: ${result.label}`);
+      console.log('Mock output only; not model confidence.');
+    } catch {
+      setValidationError('분석 중 문제가 발생했어요. 다시 시도해 주세요.');
+      setFeatures(null);
+    } finally {
+      analysisLock.current = false;
+      setAnalyzing(false);
+    }
   };
 
   const handleExport = () => {
@@ -316,6 +334,7 @@ export default function DrawingScreen() {
   };
 
   const handleReset = () => {
+    setValidationError('');
     setDrawingData({
       drawingId: `draw_${Date.now()}`,
       inputType: 'TOUCH',
@@ -355,6 +374,7 @@ export default function DrawingScreen() {
         </View>
         <Text style={styles.promptText}>{currentStep.prompt}</Text>
         <Text style={styles.stepTitle}>STEP {currentStepIdx + 1}: {currentStep.label}</Text>
+        {!!validationError && <Text accessibilityRole="alert" style={{ color: "#fca5a5", marginTop: 8 }}>{validationError}</Text>}
       </View>
 
       {/* ── Expected Label Selector (Dev Mode) ── */}
@@ -433,7 +453,7 @@ export default function DrawingScreen() {
                     
                     <View style={styles.predictionCard}>
                       <Text style={styles.predictionLabel}>
-                        {multiErrorResult?.primaryError ? multiErrorResult.primaryError.label : 'GOOD'}
+                        {multiErrorResult?.primaryError ? multiErrorResult.primaryError.label : 'WITHIN_TARGET_RANGE'}
                       </Text>
                       {multiErrorResult?.primaryError && (
                         <Text style={styles.confidence}>Severity: {(multiErrorResult.primaryError.severity * 100).toFixed(0)}%</Text>
@@ -465,21 +485,21 @@ export default function DrawingScreen() {
                         </Text>
                       ))}
                       {multiErrorResult?.detectedErrors.length === 0 && (
-                        <Text style={styles.featureItem}>- None (GOOD)</Text>
+                        <Text style={styles.featureItem}>- 탐지된 오류 없음 (임시 규칙 기준)</Text>
                       )}
 
                       <Text style={[styles.featureItem, { marginTop: 12, color: '#f87171', fontWeight: 'bold' }]}>
                         [PRIMARY ERROR]
                       </Text>
                       <Text style={styles.featureItem}>
-                        {multiErrorResult?.primaryError ? multiErrorResult.primaryError.label : 'GOOD'}
+                        {multiErrorResult?.primaryError ? multiErrorResult.primaryError.label : 'WITHIN_TARGET_RANGE'}
                       </Text>
 
                       <Text style={[styles.featureItem, { marginTop: 12, color: '#a78bfa', fontWeight: 'bold' }]}>
-                        [V0 ONNX RESULT]
+                        [V0 MOCK RESULT — 실제 모델 미사용]
                       </Text>
                       <Text style={styles.featureItem}>
-                        {inferenceResult.label} (idx: {inferenceResult.index}, conf: {(inferenceResult.confidence * 100).toFixed(0)}%)
+                        {inferenceResult.label} (모의 규칙 결과)
                       </Text>
                     </View>
                   </ScrollView>
@@ -492,23 +512,23 @@ export default function DrawingScreen() {
       
       {/* ── 하단 컨트롤바 ── */}
       <View style={styles.toolbar}>
-        <Pressable style={styles.navBtn} onPress={handlePrev} disabled={currentStepIdx === 0}>
+        <Pressable style={styles.navBtn} onPress={handlePrev} disabled={currentStepIdx === 0 || analyzing}>
           <Text style={[styles.navBtnText, currentStepIdx === 0 && styles.disabledText]}>Prev</Text>
         </Pressable>
         
         <View style={styles.centerActions}>
-          <Pressable style={[styles.actionBtn, styles.clearBtn]} onPress={features ? handleReset : handleClearCurrentStep}>
+          <Pressable style={[styles.actionBtn, styles.clearBtn]} disabled={analyzing} onPress={features ? handleReset : handleClearCurrentStep}>
             <Text style={styles.actionBtnText}>{features ? 'Restart' : 'Clear Step'}</Text>
           </Pressable>
         </View>
 
         {currentStepIdx < STEPS.length - 1 ? (
-          <Pressable style={styles.navBtn} onPress={handleNext}>
+          <Pressable style={styles.navBtn} disabled={analyzing} onPress={handleNext}>
             <Text style={styles.navBtnText}>Next</Text>
           </Pressable>
         ) : (
-          <Pressable style={[styles.navBtn, styles.analyzeBtn]} onPress={handleAnalyze}>
-            <Text style={styles.navBtnText}>Analyze</Text>
+          <Pressable style={[styles.navBtn, styles.analyzeBtn]} disabled={analyzing} onPress={handleAnalyze}>
+            <Text style={styles.navBtnText}>{analyzing ? '분석 중…' : 'Analyze'}</Text>
           </Pressable>
         )}
       </View>
@@ -567,7 +587,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   featuresOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(26, 26, 46, 0.95)',
     padding: 24,
     justifyContent: 'center',
